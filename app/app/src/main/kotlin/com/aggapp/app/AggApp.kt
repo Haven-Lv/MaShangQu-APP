@@ -38,5 +38,7 @@ class AggApp : Application() {
         // 采集本机 WebView UA（主线程一次），各平台适配器以真实设备 UA 发请求（风控一致性，见 DeviceUa）
         com.aggapp.platform.api.DeviceUa.rawWebViewUa =
             android.webkit.WebSettings.getDefaultUserAgent(this)
+        // debug 包启动时回显本进程 TLS 指纹（验证 ChromeTls ConnectionSpec 生效，release 不触发）
+        if (isDebug) com.aggapp.platform.api.ChromeTls.logFingerprintDiagnostic()
     }
 }

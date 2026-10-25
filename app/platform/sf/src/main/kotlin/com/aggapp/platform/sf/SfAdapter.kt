@@ -76,6 +76,7 @@ class SfAdapter @Inject constructor() : PlatformAdapter {
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .addInterceptor(com.aggapp.platform.api.DeviceUa.interceptor) // 缺省 UA 补本机真实 Chrome 移动 UA（驿收发链路原先暴露 okhttp/x.x）
+        .connectionSpecs(listOf(com.aggapp.platform.api.ChromeTls.connectionSpec)) // ClientHello 密码套件对齐 Chrome（TLS 指纹一致性）
         .addInterceptor(com.aggapp.platform.api.NetDebug.interceptor)
         .build()
 

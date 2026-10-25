@@ -49,6 +49,7 @@ class TaobaoAdapter @Inject constructor() : PlatformAdapter {
         .readTimeout(15, TimeUnit.SECONDS)
         .writeTimeout(15, TimeUnit.SECONDS)
         .addInterceptor(com.aggapp.platform.api.DeviceUa.interceptor) // 缺省 UA 补本机真实 Chrome 移动 UA
+        .connectionSpecs(listOf(com.aggapp.platform.api.ChromeTls.connectionSpec)) // ClientHello 密码套件对齐 Chrome（TLS 指纹一致性）
         .addInterceptor(com.aggapp.platform.api.NetDebug.interceptor) // debug 包请求日志（淘宝登录链路重点）
         .build()
 
