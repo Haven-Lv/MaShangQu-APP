@@ -10,7 +10,7 @@
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.x-7F52FF?logo=kotlin&logoColor=white)](#)
 [![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose-4285F4?logo=jetpackcompose&logoColor=white)](#)
 [![Min SDK](https://img.shields.io/badge/minSdk-26-34A853)](#)
-[![Release](https://img.shields.io/github/v/release/Haven-Lv/MaShangQu-APP?color=F57C00)](https://github.com/Haven-Lv/MaShangQu-APP/releases)
+[![Release](https://img.shields.io/github/v/release/njpemo/mashangqu?color=F57C00)](https://github.com/njpemo/mashangqu/releases)
 [![License](https://img.shields.io/badge/license-可自用修改·禁商用-lightgrey)](#-许可与免责声明)
 
 </div>
@@ -83,13 +83,10 @@
 
 ## 📲 下载安装
 
-> **本 Fork**：从 [**Releases**](https://github.com/Haven-Lv/MaShangQu-APP/releases) 下载加固版，当前版本：
->
-> [mashangqu-v1.0.8-rh3.apk](https://github.com/Haven-Lv/MaShangQu-APP/releases/download/v1.0.8-rh3/mashangqu-v1.0.8-rh3.apk)（SHA256 见 Release 说明）
->
-> 也可从源码构建（见下方折叠面板）。上游官方版仍从 [njpemo/mashangqu Releases](https://github.com/njpemo/mashangqu/releases) 获取。
+> **本 Fork 不做分发**：请从源码构建（见下方折叠面板），产物 `mashangqu-v1.0.8-rh3.apk`。
+> 上游官方版从 [**Releases**](https://github.com/njpemo/mashangqu/releases) 获取：[mashangqu-v1.0.8.apk](https://github.com/njpemo/mashangqu/releases/download/v1.0.8/mashangqu-v1.0.8.apk)
 
-上游官方版支持 App 内更新；**本 Fork 已停用应用内更新**（签名与上游不同无法覆盖安装），升级请下载新 APK 或重新构建。本 Fork 包与上游包互不兼容，需卸载另一方后全新安装。日常使用建议 release 包；debug 包请求日志含 Cookie 等敏感信息，仅排查问题时使用。
+上游官方版支持 App 内更新；**本 Fork 已停用应用内更新**（签名与上游不同无法覆盖安装），升级请重新构建。本 Fork 包与上游包互不兼容，需卸载另一方后全新安装。日常使用建议 release 构建；debug 构建请求日志含 Cookie 等敏感信息，仅排查问题时使用。
 
 <details>
 <summary><b>从源码构建</b></summary>
