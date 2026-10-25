@@ -29,6 +29,23 @@
 
 </div>
 
+## 🔧 本 Fork 改动（风控加固版 v1.0.8-rh3）
+
+基于上游 [njpemo/MaShangQu-APP](https://github.com/njpemo/MaShangQu-APP) v1.0.8，围绕「降低账号风控风险」的防御性加固，不改变既有功能：
+
+| 类别 | 改动 |
+|---|---|
+| 修复请求风暴 | 身份码过期重取失败后，旧逻辑保留过期码导致 tick 每秒重发请求；现失败即移除过期码 + 指数退避 + 重取在途去重 |
+| 失败退避 | 全平台连续失败按 1min→2h 指数退避（成功清零），静默自动刷新跳过退避中的平台，手动刷新不受限 |
+| 刷新去脚本化 | ON_RESUME 静默全量刷新节流 30s→3min；平台间加 150-600ms 随机间隔（原先 5 平台 2 秒内背靠背连发） |
+| 真实设备 UA | 启动采集本机 WebView UA，清洗 `; wv` / `Version/4.0` 为标准 Chrome 移动端形态（`DeviceUa`），替代写死的 Nexus 5 / Windows 桌面等矛盾 UA；未显式设 UA 的请求由拦截器统一补齐（原先裸发 `okhttp/x.x`） |
+| TLS 指纹 | `ChromeTls`：OkHttp ConnectionSpec 密码套件对齐 Chrome 移动端。真机 adb reverse + PC 抓 ClientHello 验证：15 个套件集合完全一致；Conscrypt 套件重排 / 无 GREASE 的天花板已在代码注释如实说明 |
+| 安全面收紧 | 移除 `usesCleartextTraffic` 与 `REQUEST_INSTALL_PACKAGES`；停用应用内更新（fork 签名与上游蒲公英渠道不同，OTA 永远无法覆盖安装） |
+
+**明确不做**：umidToken/设备指纹伪造、TLS 字节级伪装（需换 Cronet 网络栈）、anti-content 强化——前两者属主动对抗平台检测且当前无必要，后者实测正在通过、强化零现收益。
+
+**构建说明**：国内网络下 Maven Central CDN 会按 TLS 指纹拦截 Java 客户端（403），`settings.gradle.kts` 已配置阿里云镜像优先；本机无 Android SDK 时可运行仓库根目录 `install-sdk.ps1` 一键安装工具链。详见提交历史 `b72d1dc`（rh1）/ `2121f77`（rh2）/ `98773cf`（rh3）。
+
 ## ✨ 核心特性
 
 | | 特性 | 说明 |
@@ -66,11 +83,10 @@
 
 ## 📲 下载安装
 
-从 [**Releases**](https://github.com/njpemo/mashangqu/releases) 下载最新 APK，或直接获取当前版本：
+> **本 Fork 不经蒲公英分发**：请从源码构建（见下方折叠面板），产物 `mashangqu-v1.0.8-rh3.apk`。
+> 上游官方版仍从 [**Releases**](https://github.com/njpemo/mashangqu/releases) 获取：[mashangqu-v1.0.8.apk](https://github.com/njpemo/mashangqu/releases/download/v1.0.8/mashangqu-v1.0.8.apk)
 
-> [mashangqu-v1.0.8.apk](https://github.com/njpemo/mashangqu/releases/download/v1.0.8/mashangqu-v1.0.8.apk)
-
-安装后，后续新版本可通过 App 内更新自动获取。
+上游官方版支持 App 内更新；**本 Fork 已停用应用内更新**（签名与上游不同无法覆盖安装），升级请重新构建。本 Fork 包与上游包互不兼容，需卸载另一方后全新安装。日常使用建议 release 包；debug 包请求日志含 Cookie 等敏感信息，仅排查问题时使用。
 
 <details>
 <summary><b>从源码构建</b></summary>
