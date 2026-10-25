@@ -78,6 +78,7 @@ class MainViewModel @Inject constructor(
             if (!silent) _state.value = _state.value.copy(loading = true)
             val fetched = mutableMapOf<Platform, IdentityCode>()
             val real = mutableMapOf<Platform, Boolean>()
+            var anyRequested = false
             for ((p, adapter) in adapters) {
                 val cred = credentialFor(p)
                 if (cred == null) {
@@ -88,6 +89,8 @@ class MainViewModel @Inject constructor(
                     real[p] = _state.value.isReal[p] ?: false // 失败退避中：静默跳过，保留旧码
                     continue
                 }
+                if (anyRequested) delay(kotlin.random.Random.nextLong(150, 600)) // 平台间随机间隔：5 平台背靠背连发像脚本
+                anyRequested = true
                 try {
                     fetched[p] = adapter.fetchIdentityCode(cred)
                     real[p] = true

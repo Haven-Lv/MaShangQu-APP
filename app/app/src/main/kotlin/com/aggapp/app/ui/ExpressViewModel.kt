@@ -16,6 +16,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -119,9 +120,12 @@ class ExpressViewModel @Inject constructor(
             val errors = mutableListOf<String>()
             val allItems = mutableListOf<ExpressItem>()
             val byNo = mutableMapOf<String, ExpressItem>()
+            var anyRequested = false
             for (platform in listOf(Platform.SF, Platform.TAOBAO, Platform.PDD, Platform.RYLL)) {
                 val cred = creds[platform] ?: continue
                 if (!force && now < (skipUntil[platform] ?: 0L)) continue // 失败退避中：静默跳过
+                if (anyRequested) delay(kotlin.random.Random.nextLong(150, 600)) // 平台间随机间隔：连发像脚本
+                anyRequested = true
                 try {
                     val items = mutableListOf<ExpressItem>()
                     for (page in 1..MAX_PAGES) {
