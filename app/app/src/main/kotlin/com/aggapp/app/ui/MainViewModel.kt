@@ -40,17 +40,38 @@ class MainViewModel @Inject constructor(
     /** 有真实登录态返回凭据，否则 null（UI 提示未登录，不做 Mock 兜底） */
     private fun credentialFor(p: Platform): Credential? = session.credentials.value[p]
 
-    /** 上次全量刷新时间，ON_RESUME 自动刷新用 30s 节流 */
+    /** 上次全量刷新时间，ON_RESUME 自动刷新用 3 分钟节流（静默全平台拉取频率过高是风控信号） */
     private var lastRefreshAt = 0L
+
+    /** 平台失败退避：连续失败后静默自动刷新跳过该平台（手动 force 刷新不受限），成功即清零 */
+    private val failStreak = mutableMapOf<Platform, Int>()
+    private val skipUntil = mutableMapOf<Platform, Long>()
+
+    private fun onFetchFail(p: Platform) {
+        val n = (failStreak[p] ?: 0) + 1
+        failStreak[p] = n
+        // 1 分钟 → 2 分钟 → 8 分钟 → 32 分钟 → 64 分钟，封顶 2 小时
+        val backoffMs = when (n) {
+            1 -> 60_000L
+            else -> minOf(120_000L shl ((n - 2).coerceIn(0, 5)), 2 * 3_600_000L)
+        }
+        skipUntil[p] = System.currentTimeMillis() + backoffMs
+        com.aggapp.platform.api.AppLog.w("IdCode", "${p.label} 连续失败 ${n} 次，自动刷新退避 ${backoffMs / 1000}s")
+    }
+
+    private fun onFetchOk(p: Platform) {
+        failStreak.remove(p)
+        skipUntil.remove(p)
+    }
 
     /**
      * 全量刷新。force=true（下拉/单击刷新）强制执行并显示 loading；
-     * 默认（ON_RESUME 自动刷新）30s 内节流跳过，已有缓存时静默刷新不闪 loading，
-     * 避免切页转场期的重组风暴造成卡顿。
+     * 默认（ON_RESUME 自动刷新）3 分钟内节流跳过（原先 30s，频繁切屏即全平台重拉，频率偏高），
+     * 已有缓存时静默刷新不闪 loading；失败退避中的平台静默跳过，不对报错接口反复请求。
      */
     fun refreshAll(force: Boolean = false) {
         val now = System.currentTimeMillis()
-        if (!force && now - lastRefreshAt < 30_000) return
+        if (!force && now - lastRefreshAt < 180_000) return
         lastRefreshAt = now
         val silent = !force && _state.value.codes.isNotEmpty()
         viewModelScope.launch {
@@ -63,19 +84,27 @@ class MainViewModel @Inject constructor(
                     real[p] = false // 未登录：不拉码
                     continue
                 }
+                if (!force && now < (skipUntil[p] ?: 0L)) {
+                    real[p] = _state.value.isReal[p] ?: false // 失败退避中：静默跳过，保留旧码
+                    continue
+                }
                 try {
                     fetched[p] = adapter.fetchIdentityCode(cred)
                     real[p] = true
+                    onFetchOk(p)
                 } catch (e: PlatformError.NeedRelogin) {
-                    real[p] = false // 凭据失效：不展示码
+                    real[p] = false // 凭据失效：不展示码，退避到下次静默刷新再查
+                    onFetchFail(p)
                 } catch (e: PlatformError.NeedActivate) {
                     real[p] = false
                     com.aggapp.platform.api.AppLog.w("IdCode", "${p.label} fetchIdentityCode: ${e.detail}")
+                    onFetchFail(p)
                     if (p == Platform.TAOBAO) {
                         _state.value = _state.value.copy(needCainiaoActivate = true)
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
+                    onFetchFail(p)
                 }
             }
             _state.value = if (silent) {
@@ -126,11 +155,16 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    /** 到期重取在途标记：tick 每秒触发，防止网络慢时并发叠加多次重取 */
+    private val refreshing = mutableSetOf<Platform>()
+
     private fun refreshOne(platform: Platform) {
+        if (!refreshing.add(platform)) return // 上一次到期重取尚未返回，本秒不叠加
         viewModelScope.launch {
-            val cred = credentialFor(platform) ?: return@launch
             try {
+                val cred = credentialFor(platform) ?: return@launch
                 val code = adapters.getValue(platform).fetchIdentityCode(cred)
+                onFetchOk(platform)
                 _state.value = _state.value.copy(
                     codes = _state.value.codes + (platform to code),
                     isReal = _state.value.isReal + (platform to true),
@@ -140,9 +174,27 @@ class MainViewModel @Inject constructor(
                 if (platform == Platform.TAOBAO) {
                     _state.value = _state.value.copy(needCainiaoActivate = true)
                 }
+                dropExpired(platform)
             } catch (e: Exception) {
                 e.printStackTrace()
+                dropExpired(platform)
+            } finally {
+                refreshing.remove(platform)
             }
         }
+    }
+
+    /**
+     * 到期重取失败：移除过期旧码并记失败退避。
+     * 旧逻辑失败后仍保留过期码，tick() 每秒都看到「已过期」再次发起重取——
+     * 对持续报错的平台等于每秒打一次接口（请求风暴，风控高危），必须掐断。
+     */
+    private fun dropExpired(platform: Platform) {
+        onFetchFail(platform)
+        _state.value = _state.value.copy(
+            codes = _state.value.codes - platform,
+            isReal = _state.value.isReal + (platform to false),
+            countdownSec = null,
+        )
     }
 }

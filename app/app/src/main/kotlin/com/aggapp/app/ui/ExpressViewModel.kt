@@ -66,8 +66,29 @@ class ExpressViewModel @Inject constructor(
         refresh(force = true)
     }
 
-    /** 上次刷新时间，进入页面自动刷新用 30s 节流 */
+    /** 上次刷新时间，进入页面自动刷新用 3 分钟节流（静默全平台拉取频率过高是风控信号） */
     private var lastRefreshAt = 0L
+
+    /** 平台失败退避：列表连续失败的平台，静默自动刷新跳过（手动 force 刷新不受限），成功即清零 */
+    private val failStreak = mutableMapOf<Platform, Int>()
+    private val skipUntil = mutableMapOf<Platform, Long>()
+
+    private fun onListFail(p: Platform) {
+        val n = (failStreak[p] ?: 0) + 1
+        failStreak[p] = n
+        // 1 分钟 → 2 分钟 → 8 分钟 → 32 分钟 → 64 分钟，封顶 2 小时
+        val backoffMs = when (n) {
+            1 -> 60_000L
+            else -> minOf(120_000L shl ((n - 2).coerceIn(0, 5)), 2 * 3_600_000L)
+        }
+        skipUntil[p] = System.currentTimeMillis() + backoffMs
+        AppLog.w("Express", "${platformLabel(p)} 列表连续失败 ${n} 次，自动刷新退避 ${backoffMs / 1000}s")
+    }
+
+    private fun onListOk(p: Platform) {
+        failStreak.remove(p)
+        skipUntil.remove(p)
+    }
 
     /** 清除查询结果展示（点空白处/刷新时调用；结果单号已加入跟踪列表，不受影响） */
     fun clearSearchResult() {
@@ -82,7 +103,7 @@ class ExpressViewModel @Inject constructor(
      */
     fun refresh(force: Boolean = false) {
         val now = System.currentTimeMillis()
-        if (!force && now - lastRefreshAt < 30_000) return
+        if (!force && now - lastRefreshAt < 180_000) return
         lastRefreshAt = now
         val silent = !force && _ui.value.stations.isNotEmpty()
         val creds = sessionRepo.credentials.value
@@ -100,6 +121,7 @@ class ExpressViewModel @Inject constructor(
             val byNo = mutableMapOf<String, ExpressItem>()
             for (platform in listOf(Platform.SF, Platform.TAOBAO, Platform.PDD, Platform.RYLL)) {
                 val cred = creds[platform] ?: continue
+                if (!force && now < (skipUntil[platform] ?: 0L)) continue // 失败退避中：静默跳过
                 try {
                     val items = mutableListOf<ExpressItem>()
                     for (page in 1..MAX_PAGES) {
@@ -112,8 +134,10 @@ class ExpressViewModel @Inject constructor(
                         if (no != null) byNo[no] = item // 全量索引（含签收，供跟踪状态判断）
                     }
                     allItems += items
+                    onListOk(platform)
                 } catch (e: Exception) {
                     errors += "${platformLabel(platform)}：${e.message}"
+                    onListFail(platform)
                 }
             }
 

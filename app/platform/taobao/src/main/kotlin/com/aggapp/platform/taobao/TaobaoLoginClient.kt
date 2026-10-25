@@ -370,8 +370,12 @@ internal class TaobaoLoginClient(private val http: OkHttpClient) {
          * H5 入口（login.m.taobao.com + taobao_h5 + 手机 UA）实测 login.do 一次直落完整登录态
          * （unb/cookie2/skt 等全 Set-Cookie），无 iv。Node 对拍脚本 taobao/js/test_h5_login.js。
          */
-        const val LOGIN_UA: String =
+        /** 兜底常量：DeviceUa 未采集时使用（原串为不可能的设备组合且全网用户同串，易被风控聚类） */
+        private const val LOGIN_UA_FALLBACK: String =
             "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36"
+
+        /** 登录链路实际 UA：本机真实 Chrome 移动端 UA 优先（同为 H5 手机形态，且与设备实际一致），回退兜底常量 */
+        val LOGIN_UA: String get() = com.aggapp.platform.api.DeviceUa.chromeMobile ?: LOGIN_UA_FALLBACK
 
         /** §3.4 步骤 1 登录页（H5 入口） */
         const val LOGIN_PAGE_URL =

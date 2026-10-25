@@ -17,6 +17,13 @@ import java.io.IOException
 internal const val TB_UA: String =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"
 
+/**
+ * 实际请求 UA：本机真实 Chrome 移动端 UA 优先（mtop Referer 是 H5 页面，真实浏览器会话
+ * 即移动 UA；原先登录用手机 UA、mtop 用桌面 UA，同一 Cookie 会话形态割裂），未采集时
+ * 回退上方实测桌面串。
+ */
+internal fun deviceTbUa(): String = com.aggapp.platform.api.DeviceUa.chromeMobile ?: TB_UA
+
 /** 统一 HTTP 结果（body 已按 UTF-8 解码；setCookies 为原始 Set-Cookie 头列表；location 供手动跳转） */
 internal class TaobaoHttpResponse(
     val code: Int,
@@ -31,7 +38,7 @@ internal suspend fun taobaoGet(
     url: String,
     cookie: String,
     referer: String,
-    ua: String = TB_UA,
+    ua: String = deviceTbUa(),
 ): TaobaoHttpResponse = requestAndRead(
     http,
     Request.Builder()
@@ -51,7 +58,7 @@ internal suspend fun taobaoPost(
     cookie: String,
     referer: String,
     origin: String?,
-    ua: String = TB_UA,
+    ua: String = deviceTbUa(),
 ): TaobaoHttpResponse = requestAndRead(
     http,
     Request.Builder()
@@ -86,7 +93,7 @@ internal suspend fun taobaoGetNoRedirect(
     url: String,
     cookie: String,
     referer: String,
-    ua: String = TB_UA,
+    ua: String = deviceTbUa(),
 ): TaobaoHttpResponse {
     val noRedirect = http.newBuilder().followRedirects(false).build()
     return requestAndRead(

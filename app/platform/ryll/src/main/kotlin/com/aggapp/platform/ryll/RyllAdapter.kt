@@ -44,6 +44,7 @@ class RyllAdapter @Inject constructor(
         OkHttpClient.Builder()
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
+            .addInterceptor(com.aggapp.platform.api.DeviceUa.interceptor) // 缺省 UA 补本机真实 Chrome 移动 UA
             .addInterceptor(com.aggapp.platform.api.NetDebug.interceptor)
             .build(),
     )

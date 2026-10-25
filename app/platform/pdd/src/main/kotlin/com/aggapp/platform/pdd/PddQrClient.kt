@@ -53,6 +53,7 @@ class PddQrClient @Inject constructor(
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
             .followRedirects(false)
+            .addInterceptor(com.aggapp.platform.api.DeviceUa.interceptor) // 缺省 UA 补本机真实 Chrome 移动 UA
             .addInterceptor(com.aggapp.platform.api.NetDebug.interceptor)
             .build()
     }

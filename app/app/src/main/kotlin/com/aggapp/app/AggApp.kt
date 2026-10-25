@@ -35,5 +35,8 @@ class AggApp : Application() {
         com.aggapp.platform.api.NetDebug.enabled = isDebug
         com.aggapp.platform.api.NetDebug.withBody = isDebug
         AppLog.d("AggApp", "NetDebug enabled=$isDebug")
+        // 采集本机 WebView UA（主线程一次），各平台适配器以真实设备 UA 发请求（风控一致性，见 DeviceUa）
+        com.aggapp.platform.api.DeviceUa.rawWebViewUa =
+            android.webkit.WebSettings.getDefaultUserAgent(this)
     }
 }

@@ -26,7 +26,6 @@ import androidx.compose.animation.fadeOut
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.aggapp.app.ui.theme.AggTheme
-import com.aggapp.app.update.AppUpdateEffect
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -35,7 +34,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             AggTheme {
-                AppUpdateEffect()
+                // 应用内更新已停用：自编译包签名与作者蒲公英渠道不同，OTA 永远无法覆盖安装；
+                // 需要新版时从源码重新构建，或卸载后安装官方发布包
                 val navController = rememberNavController()
                 AggScaffold(navController)
             }

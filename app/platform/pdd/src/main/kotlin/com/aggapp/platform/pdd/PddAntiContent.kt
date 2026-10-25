@@ -98,8 +98,21 @@ class PddAntiContent(private val context: Context) {
     /** GET api.pinduoduo.com/api/server/_stm → server_time（test_live.js 同款，失败退 Date.now()） */
     private suspend fun fetchServerTime(): String = withContext(Dispatchers.IO) {
         try {
-            java.net.URL("https://api.pinduoduo.com/api/server/_stm")
-                .openStream().bufferedReader().use { JSONObject(it.readText()).optString("server_time") }
+            // 显式带浏览器 UA：HttpURLConnection 默认 UA（Dalvik/…）对 PDD 接口等于自报脚本客户端
+            val conn = java.net.URL("https://api.pinduoduo.com/api/server/_stm")
+                .openConnection() as java.net.HttpURLConnection
+            conn.connectTimeout = 5_000
+            conn.readTimeout = 5_000
+            conn.setRequestProperty(
+                "User-Agent",
+                com.aggapp.platform.api.DeviceUa.chromeMobile
+                    ?: "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36",
+            )
+            try {
+                conn.inputStream.bufferedReader().use { JSONObject(it.readText()).optString("server_time") }
+            } finally {
+                conn.disconnect()
+            }
         } catch (_: Exception) {
             System.currentTimeMillis().toString()
         }

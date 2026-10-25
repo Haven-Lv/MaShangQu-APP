@@ -238,8 +238,12 @@ internal class SfMimpClient(private val http: OkHttpClient) {
         private const val MIMP_REFERER =
             "https://mcs-mimp-web.sf-express.com/origin/a/mimp-member-right/campusZoneId"
 
-        private const val UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+        /** 兜底常量：DeviceUa 未采集时使用（原实测 Windows 桌面 UA；MIMP 为移动 H5 站，手机上发桌面 UA 是形态矛盾） */
+        private const val DEFAULT_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
             "(KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
+
+        /** 实际请求 UA：本机真实 Chrome 移动端 UA 优先，回退兜底常量 */
+        private val UA: String get() = com.aggapp.platform.api.DeviceUa.chromeMobile ?: DEFAULT_UA
 
         private val JSON_MEDIA = "application/json;charset=UTF-8".toMediaType()
     }

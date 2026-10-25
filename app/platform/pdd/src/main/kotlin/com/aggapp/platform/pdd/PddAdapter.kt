@@ -65,6 +65,7 @@ class PddAdapter @Inject constructor(
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
             .followRedirects(false)
+            .addInterceptor(com.aggapp.platform.api.DeviceUa.interceptor) // 缺省 UA 补本机真实 Chrome 移动 UA
             .addInterceptor(com.aggapp.platform.api.NetDebug.interceptor)
             .build()
     }
@@ -516,10 +517,13 @@ class PddAdapter @Inject constructor(
         /** pick_code 前缀（"取件码 152-2-6010" → "152-2-6010"） */
         const val PICK_CODE_PREFIX = "取件码"
 
-        /** 微信内置浏览器 UA（pdd.md §4.2.4：PC/手机微信 UA 均可） */
-        const val WX_UA =
+        /** 兜底常量：DeviceUa 未采集时使用 */
+        private const val WX_UA_FALLBACK =
             "Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 (KHTML, like Gecko) " +
                 "Version/4.0 Chrome/116.0.0.0 Mobile Safari/537.36 MicroMessenger/8.0.49"
+
+        /** 微信内置浏览器 UA（pdd.md §4.2.4：PC/手机微信 UA 均可）：本机真实设备 UA + MicroMessenger 后缀优先 */
+        val WX_UA: String get() = com.aggapp.platform.api.DeviceUa.wechatMobile ?: WX_UA_FALLBACK
 
         /** getCode 返回 JSON 里的 code 字段 */
         val WX_CODE_REGEX = Regex("\"code\"\\s*:\\s*\"([^\"]+)\"")

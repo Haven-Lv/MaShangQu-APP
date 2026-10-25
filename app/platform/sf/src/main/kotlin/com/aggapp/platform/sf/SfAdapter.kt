@@ -75,6 +75,7 @@ class SfAdapter @Inject constructor() : PlatformAdapter {
     private val http = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
+        .addInterceptor(com.aggapp.platform.api.DeviceUa.interceptor) // 缺省 UA 补本机真实 Chrome 移动 UA（驿收发链路原先暴露 okhttp/x.x）
         .addInterceptor(com.aggapp.platform.api.NetDebug.interceptor)
         .build()
 
